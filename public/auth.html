@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>设备授权</title>
+<style>
+  :root{--bg:#0b0f17;--card:#121826;--line:#1e2637;--txt:#e6edf7;--dim:#8592a8;--acc:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#152036 0%,var(--bg) 60%),var(--bg);color:var(--txt);
+       font:16px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
+  .wrap{width:100%;max-width:660px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4f7cff,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;flex:none}
+  h1{font-size:21px;margin:0;letter-spacing:.5px}
+  .sub{color:var(--dim);font-size:14px;margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 22px}
+  .state{display:flex;align-items:center;gap:16px}
+  .badge{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;background:#1b2231}
+  .badge.ok{background:rgba(34,197,94,.14);color:#5ee08b}
+  .badge.warn{background:rgba(245,158,11,.14);color:#ffc861}
+  .badge.bad{background:rgba(239,68,68,.14);color:#ff8f8f}
+  .stateTitle{font-size:20px;font-weight:600}
+  .stateDesc{color:var(--dim);font-size:14px;margin-top:4px}
+  .dev{display:none;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .dev.show{display:block}
+  .row{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:4px 0}
+  .row span{color:var(--dim)}
+  .row b{font-weight:500;text-align:right;word-break:break-all}
+  .selfBox{display:none;margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+  .selfBox.show{display:block}
+  .selfBox label{display:block;color:var(--dim);font-size:14px;margin-bottom:10px}
+  input{width:100%;background:#0c111b;border:1px solid var(--line);color:var(--txt);
+        padding:13px 16px;border-radius:10px;font-size:22px;letter-spacing:9px;text-align:center;outline:none;font-family:inherit}
+  input::placeholder{letter-spacing:2px;font-size:16px;color:#4a566b}
+  input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .pad button{cursor:pointer;border:1px solid var(--line);background:#182136;color:var(--txt);
+         padding:14px 0;border-radius:10px;font-size:20px;font-family:inherit;transition:.12s;font-weight:500}
+  .pad button:hover{border-color:#2b3a58;background:#1d2841}
+  .pad button:focus{outline:none;border-color:var(--acc);background:#1e2c4a;box-shadow:0 0 0 3px rgba(59,130,246,.3)}
+  .pad button.fn{color:var(--dim);font-size:17px}
+  .pad button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+  .pad button.primary:focus{background:#2f6fe0;box-shadow:0 0 0 3px rgba(59,130,246,.45)}
+  .pad button.primary:disabled{opacity:.55;cursor:default}
+  .tip{color:var(--dim);font-size:13px;margin-top:12px;line-height:1.7}
+  .backBtn{display:none;margin-top:16px;text-align:center;text-decoration:none;background:#16a34a;border:1px solid #16a34a;
+        color:#fff;padding:14px;border-radius:10px;font-size:16px;font-weight:600}
+  .backBtn.show{display:block}
+  .backBtn:focus{outline:none;box-shadow:0 0 0 3px rgba(34,197,94,.4)}
+  .msg{margin-top:14px;font-size:14px;border-radius:10px;padding:0;transition:.2s}
+  .msg.show{padding:11px 14px}
+  .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);color:#ff9d9d}
+  .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.28);color:#7bd88f}
+  .msg.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#9dbcf7}
+  .foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;color:#5a677d;font-size:12px}
+  .foot button{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--dim);
+        padding:7px 13px;border-radius:8px;font-size:13px;font-family:inherit}
+  .foot button:focus{outline:none;border-color:var(--acc);color:var(--txt)}
+  @media (max-width:520px){
+    body{padding:14px}
+    .card{padding:18px 14px}
+    h1{font-size:19px}
+    input{font-size:19px;letter-spacing:6px}
+    .pad button{padding:12px 0;font-size:18px}
+  }
+  @media (min-width:1280px){
+    .qgroup{padding:16px 20px}
+    .qgroup .lbl{font-size:16px}
+    .qgroup .val{font-size:19px}
+    .wrap{max-width:740px}
+    body{font-size:17px}
+    h1{font-size:25px}
+    .stateTitle{font-size:23px}
+    input{font-size:26px;padding:16px}
+    .pad button{font-size:23px;padding:15px 0}
+  }
+
+  .qgroup{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+        margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px}
+  .qgroup .lbl{color:var(--dim);font-size:14px}
+  .qgroup .val{font-weight:600;letter-spacing:.6px;color:#9dbcf7;font-size:16px}
+  .qgroup .val:focus{outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.3);border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">B</div>
+    <div>
+      <h1>设备授权</h1>
+      <div class="sub" id="subline">正在读取这台电视的授权状态…</div>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="state">
+      <div class="badge" id="badge">·</div>
+      <div>
+        <div class="stateTitle" id="stateTitle">读取中</div>
+        <div class="stateDesc" id="stateDesc">请稍候…</div>
+      </div>
+    </div>
+
+    <div class="dev" id="devBox">
+      <div class="row"><span>设备</span><b id="devName">-</b></div>
+      <div class="row"><span>MAC</span><b id="devMac">-</b></div>
+      <div class="row"><span>设备编号</span><b id="devCode">-</b></div>
+      <div class="row"><span>网络</span><b id="devIp">-</b></div>
+    </div>
+
+    <div class="selfBox" id="selfBox">
+      <label>输入 6 位自助授权码</label>
+      <input id="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6 位数字" autocomplete="off">
+      <div class="pad" id="pad">
+        <button type="button" data-k="1">1</button>
+        <button type="button" data-k="2">2</button>
+        <button type="button" data-k="3">3</button>
+        <button type="button" data-k="4">4</button>
+        <button type="button" data-k="5">5</button>
+        <button type="button" data-k="6">6</button>
+        <button type="button" data-k="7">7</button>
+        <button type="button" data-k="8">8</button>
+        <button type="button" data-k="9">9</button>
+        <button type="button" data-k="del" class="fn">删除</button>
+        <button type="button" data-k="0">0</button>
+        <button type="button" data-k="ok" class="primary" id="go">确定</button>
+      </div>
+      <div class="tip">授权码在管理后台「自助授权码」里查看。输入正确后只放行当前这台设备，其它设备不受影响。</div>
+    </div>
+
+    <a class="backBtn" id="backApp" href="zakagate://ok">返回电视继续观看</a>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+
+  <div class="qgroup">
+    <span class="lbl">问题反馈 / 使用交流</span>
+    <span class="val">QQ 群 925025995</span>
+  </div>
+
+  <div class="foot">
+    <span id="footNote">授权过程中请不要关闭此页面</span>
+    <button id="refresh">刷新状态</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var DID = q.get('did') || q.get('deviceId') || q.get('devid') || '';
+  var MAC = q.get('mac') || '';
+  var FROM_APP = q.get('from') === 'app' || !!MAC;
+  var timer = null, busy = false, doneOk = false, jumped = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var badge = $('badge'), stateTitle = $('stateTitle'), stateDesc = $('stateDesc');
+  var subline = $('subline'), devBox = $('devBox'), selfBox = $('selfBox');
+  var msgEl = $('msg'), codeEl = $('code'), goBtn = $('go'), foot = $('footNote'), pad = $('pad'), backApp = $('backApp');
+
+  function setMsg(text, kind) {
+    if (!text) { msgEl.className = 'msg'; msgEl.textContent = ''; return; }
+    msgEl.className = 'msg show ' + (kind || 'info');
+    msgEl.textContent = text;
+  }
+  function setState(t, cls, title, desc) {
+    badge.textContent = t; badge.className = 'badge ' + (cls || '');
+    stateTitle.textContent = title; stateDesc.textContent = desc || '';
+  }
+  function fmtMac(m) {
+    if (!m) return '-';
+    var s = String(m).replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+    return s.length === 12 ? s.replace(/(..)(?=.)/g, '$1:') : String(m).toUpperCase();
+  }
+  function qs() {
+    var p = [];
+    if (DID) p.push('did=' + encodeURIComponent(DID));
+    if (MAC) p.push('mac=' + encodeURIComponent(MAC));
+    return p.length ? ('?' + p.join('&')) : '';
+  }
+  function getJSON(url, opt) {
+    return fetch(url, Object.assign({ credentials: 'same-origin', cache: 'no-store' }, opt || {}))
+      .then(function (r) { return r.json().catch(function () { return { ok: false, msg: '服务返回异常（HTTP ' + r.status + '）' }; }); });
+  }
+
+  /* 通知 APP 门禁：未装 APP 或普通浏览器打开时，这里不会有任何反应 */
+  function passToApp() {
+    if (!FROM_APP || jumped) return;
+    jumped = true;
+    setTimeout(function () {
+      try { location.href = 'zakagate://ok'; } catch (e) { }
+      setTimeout(function () {
+        try {
+          var f = document.createElement('iframe');
+          f.style.display = 'none'; f.src = 'zakagate://ok';
+          document.body.appendChild(f);
+        } catch (e) { }
+      }, 400);
+    }, 700);
+  }
+
+  function fillDev(me, ip) {
+    devBox.className = 'dev show';
+    $('devName').textContent = me.name || me.model || '未知机型';
+    $('devMac').textContent = fmtMac(me.mac || (me.macs && me.macs[0]) || '');
+    $('devCode').textContent = me.code || '-';
+    $('devIp').textContent = ip || me.ip || '-';
+  }
+
+  function onPassed() {
+    doneOk = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    selfBox.className = 'selfBox';
+    subline.textContent = '授权状态正常';
+    foot.textContent = FROM_APP ? '正在返回电视…' : '可以关闭此页面了';
+    if (FROM_APP) backApp.className = 'backBtn show';
+    passToApp();
+  }
+
+  function render(r) {
+    if (!r || r.ok === false) {
+      setState('!', 'bad', '连接不上授权服务', (r && r.msg) || '请检查网络后点右下角刷新');
+      setMsg(r && r.msg ? r.msg : '', 'err');
+      return;
+    }
+    if (r.blocked) {
+      setState('×', 'bad', '这台设备已被停用', '如需恢复，请联系管理员');
+      setMsg(r.msg || '此设备已被管理员停用', 'err');
+      selfBox.className = 'selfBox';
+      return;
+    }
+
+    var mode = r.authMode || 'self';
+    var me = r.me || null;
+    var st = me ? (me.status || 'pending') : '';
+
+    if (r.gateOn === false) {
+      setState('✓', 'ok', '门禁已关闭', '当前不需要授权即可观看');
+      setMsg('管理员已关闭门禁，电视可以直接使用。', 'ok');
+      if (me) fillDev(me, r.ip);
+      selfBox.className = 'selfBox';
+      if (FROM_APP) passToApp();
+      return;
+    }
+
+    if (r.known === false || !me) {
+      setState('?', 'warn', '没有认出这台电视', r.msg || '请在电视上用 APP 打开授权页');
+      setMsg(r.msg || '这个网络下没有登记过的电视，请在电视上用 APP 打开这个授权页。', 'info');
+      devBox.className = 'dev';
+      selfBox.className = 'selfBox';
+      return;
+    }
+
+    fillDev(me, r.ip);
+
+    if (st === 'ok') {
+      setState('✓', 'ok', '这台电视已授权', FROM_APP ? '正在自动返回电视…' : '可以回到电视继续观看了');
+      setMsg('授权已通过。', 'ok');
+      onPassed();
+      return;
+    }
+    if (st === 'deny') {
+      setState('×', 'bad', '这台设备被拒绝了', '请联系管理员在后台处理');
+      setMsg('管理员拒绝了这台设备的授权，如需使用请联系管理员。', 'err');
+      selfBox.className = 'selfBox';
+      return;
+    }
+    if (me.inBlock) {
+      setState('×', 'bad', '这台设备已被停用', '如需恢复，请联系管理员');
+      setMsg('此设备已被管理员加入停用名单。', 'err');
+      selfBox.className = 'selfBox';
+      return;
+    }
+    if (mode === 'auto') {
+      setState('…', 'warn', '等待自动放行', '新设备自动放行已开启，稍等片刻');
+      setMsg('正在等待系统自动放行，此页面会自动刷新。', 'info');
+      selfBox.className = 'selfBox';
+      return;
+    }
+    if (mode === 'manual') {
+      setState('!', 'warn', '等待管理员放行', '管理员开启的是手动放行模式');
+      setMsg('这台电视已上报，请联系管理员在后台点「放行」。放行后此页面会自动更新。', 'info');
+      selfBox.className = 'selfBox';
+      return;
+    }
+
+    setState('…', 'warn', '这台电视还没授权', '输入自助授权码即可自行通过');
+    setMsg('', '');
+    selfBox.className = 'selfBox show';
+    subline.textContent = '待授权 · 请输入授权码';
+    var first = pad.querySelector('button[data-k="1"]');
+    try { if (first && document.activeElement === document.body) first.focus({ preventScroll: true }); } catch (e) { }
+  }
+
+  function load(quiet) {
+    if (!quiet) subline.textContent = '正在读取这台电视的授权状态…';
+    return getJSON('/auth-api/status' + qs())
+      .then(function (r) {
+        render(r);
+        if (!doneOk && !timer) timer = setInterval(function () { load(true); }, 4000);
+        return r;
+      })
+      .catch(function () {
+        if (!quiet) {
+          setState('!', 'bad', '读取失败', '网络好像不通，点右下角刷新重试');
+          setMsg('连接授权服务失败，请检查电视的网络。', 'err');
+        }
+      });
+  }
+
+  function submit() {
+    if (busy || doneOk) return;
+    var code = (codeEl.value || '').replace(/\D/g, '');
+    if (code.length !== 6) {
+      setMsg('请输入 6 位数字授权码', 'err');
+      codeEl.focus();
+      return;
+    }
+    busy = true; goBtn.disabled = true; goBtn.textContent = '验证中';
+    setMsg('', '');
+    getJSON('/auth-api/self', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, did: DID, mac: MAC })
+    }).then(function (r) {
+      if (r && r.ok) {
+        setState('✓', 'ok', '授权成功', FROM_APP ? '正在自动返回电视…' : '这台电视已经可以观看了');
+        setMsg('授权已通过。', 'ok');
+        onPassed();
+      } else {
+        setMsg((r && r.msg) || '授权没有通过，请再试一次', 'err');
+        codeEl.value = '';
+        codeEl.focus();
+      }
+    }).catch(function () {
+      setMsg('提交失败，请检查网络后重试', 'err');
+    }).then(function () {
+      busy = false; goBtn.disabled = false; goBtn.textContent = '确定';
+    });
+  }
+
+  function press(k) {
+    var v = (codeEl.value || '').replace(/\D/g, '');
+    if (k === 'del') { codeEl.value = v.slice(0, -1); codeEl.focus(); return; }
+    if (k === 'ok') { submit(); return; }
+    if (v.length >= 6) v = v.slice(0, 5);
+    codeEl.value = v + k;
+    if (codeEl.value.length === 6) { submit(); return; }
+    codeEl.focus();
+  }
+
+  pad.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-k]') : null;
+    if (b) press(b.getAttribute('data-k'));
+  });
+
+  codeEl.addEventListener('input', function () {
+    var v = (codeEl.value || '').replace(/\D/g, '').slice(0, 6);
+    if (v !== codeEl.value) codeEl.value = v;
+    if (v.length === 6) submit();
+  });
+  codeEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+  $('refresh').addEventListener('click', function () { load(false); });
+
+  load(false);
+  window.addEventListener('focus', function () { if (!doneOk) load(true); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && !doneOk) load(true);
+  });
+})();
+</script>
+</body>
+</html>

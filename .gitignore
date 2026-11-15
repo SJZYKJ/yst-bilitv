@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Production state and secrets
+data.json
+data.json.*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+admin-password.txt
+.env
+.env.*
+!.env.example
+
+# Logs and runtime files
+logs/
+*.log
+*.pid
+/tmp/
+
+# Certificates and private keys
+tls/
+certs/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Deployment backups and staging
+backups/
+backup-*/
+.deploy-*/
+*.bak
+*.bak-*
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

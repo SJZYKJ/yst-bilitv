@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>解析服务器 · 控制台</title>
+<script src="/panel/assets/qrcode.min.js"></script>
+<style>
+  :root{--bg:#0b0f17;--card:#121826;--card2:#0f1420;--line:#1e2637;--txt:#e6edf7;--dim:#8592a8;--acc:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  a{color:var(--acc)}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4f7cff,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+  h1{font-size:18px;margin:0}
+  .sub{color:var(--dim);font-size:12px}
+  .sp{flex:1}
+  button{cursor:pointer;border:1px solid var(--line);background:#182136;color:var(--txt);padding:8px 14px;border-radius:8px;font-size:13px}
+  button:hover{border-color:#2b3a58}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.danger{color:#ffb4b4;border-color:#3a2028;background:#1a1116}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card .k{color:var(--dim);font-size:12px;margin-bottom:6px}
+  .card .v{font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .card .v small{font-size:14px;color:var(--dim);font-weight:400}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .box h2{font-size:14px;margin:0 0 12px;color:#c9d4e6;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--dim);font-weight:500;border-bottom:1px solid var(--line);padding:8px}
+  td{padding:10px 8px;border-bottom:1px solid #161d2b}
+  .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px}
+  .tag.ok{background:rgba(34,197,94,.12);color:#5ee08b}
+  .tag.bad{background:rgba(239,68,68,.12);color:#ff8f8f}
+  .tag.vip{background:rgba(245,158,11,.14);color:#ffc861}
+  .tag.n{background:#1b2231;color:#9fb0c9}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input{background:#0c111b;border:1px solid var(--line);color:var(--txt);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;width:100%}
+  input:focus{border-color:#2f4a7a}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tabs button.on{background:#1c2942;border-color:#2f4570;color:#fff}
+  .pane{display:none}.pane.on{display:block}
+  #qrbox{width:220px;height:220px;background:#fff;border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center}
+  #qrbox canvas,#qrbox img{width:200px;height:200px}
+  .muted{color:var(--dim);font-size:12px}
+  select{background:#0c111b;border:1px solid var(--line);color:var(--txt);padding:5px 8px;border-radius:8px;font-size:12px;outline:none}
+  select:focus{border-color:#2f4a7a}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chips button{padding:5px 12px;font-size:12px;border-radius:99px}
+  .chips button.on{background:#1c2942;border-color:#2f4570;color:#fff}
+  .chips button span{opacity:.65;margin-left:2px}
+  .pager{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .pager button{padding:5px 10px;font-size:12px;border-radius:7px;min-width:32px}
+  .pager button.on{background:#1c2942;border-color:#2f4570;color:#fff}
+  .pager button:disabled{opacity:.32;cursor:not-allowed}
+  .pager .info{color:var(--dim);font-size:12px;margin-left:auto;display:flex;align-items:center;gap:6px}
+  .devwrap{overflow-x:auto}
+  @media(max-width:760px){.pager .info{margin-left:0;width:100%}}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#9fb0c9;max-height:220px;overflow:auto}
+  .log div{padding:3px 0;border-bottom:1px dashed #161d2b}
+  #login{max-width:360px;margin:12vh auto}
+  .hide{display:none!important}
+  .modal{position:fixed;inset:0;background:rgba(4,7,12,.74);display:flex;align-items:center;justify-content:center;padding:16px;z-index:99}
+  .modal-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;width:100%;max-width:380px;box-shadow:0 18px 48px rgba(0,0,0,.5)}
+  .modal-card h2{font-size:15px;margin:0 0 14px}
+  .modal-card .fl{display:block;color:var(--dim);font-size:12px;margin:0 0 5px}
+  .modal-card input{margin-bottom:12px}
+  @media(max-width:760px){.modal-card{padding:16px}}
+  .badge{font-size:12px;color:var(--dim)}
+  .err{color:#ff9b9b;font-size:12px;min-height:18px}
+  .okc{color:#5ee08b;font-size:12px;min-height:18px}
+  @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 登录 -->
+  <div id="login" class="hide">
+    <div class="card">
+      <h1 style="margin-bottom:4px">解析服务器</h1>
+      <div class="sub" style="margin-bottom:16px">设备授权 · Cookie 池 · 运行状态</div>
+      <input id="pw" type="password" placeholder="后台密码" autocomplete="current-password">
+      <div class="err" id="loginErr"></div>
+      <button class="primary" style="width:100%;margin-top:8px" onclick="doLogin()">登录</button>
+      <div class="muted" style="margin-top:10px">初始密码在服务器 /opt/bili-relay/admin-password.txt，改过密码后以你自己设的为准</div>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="main" class="hide">
+    <header>
+      <div class="logo">R</div>
+      <div>
+        <h1>解析服务器</h1>
+        <div class="sub">Cookie 池 · 会员中转 · 运行状态</div>
+      </div>
+      <div class="sp"></div>
+      <button onclick="openPw()">改密码</button>
+      <button onclick="refresh()">刷新</button>
+      <button onclick="logout()">退出</button>
+    </header>
+
+    <div class="grid">
+      <div class="card"><div class="k">有效 Cookie</div><div class="v" id="s-valid">-</div></div>
+      <div class="card"><div class="k">账号总数</div><div class="v" id="s-acc">-</div></div>
+      <div class="card"><div class="k">今日请求</div><div class="v" id="s-req">-</div></div>
+      <div class="card"><div class="k">最近成功</div><div class="v" id="s-last" style="font-size:16px;padding-top:8px">-</div></div>
+    </div>
+
+    <!-- 设备授权 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">设备授权</h2>
+        <span class="badge" id="gateHint">-</span>
+        <div class="sp"></div>
+        <button onclick="approveAll()">全部放行</button>
+        <button class="danger" id="clearUnauthBtn" onclick="clearUnauth()">一键清理未授权</button>
+        <button onclick="toggleGate()" id="gateBtn">关闭授权闸</button>
+      </div>
+      <div class="muted" style="margin-bottom:12px">
+        电视/盒子浏览器打开授权页自动登记设备：<a id="authUrl" target="_blank" href="#"></a>
+        · 未授权设备只能过启动接口，播放 / 搜索 / 详情一律被挡
+      </div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">授权方式</b>
+          <span class="badge" id="authModeHint">-</span>
+          <div class="sp"></div>
+          <button id="btnAuthManual" onclick="setAuthMode('manual')">手动放行</button>
+          <button id="btnAuthSelf" onclick="setAuthMode('self')">自助授权码</button>
+          <button id="btnAuthAuto" onclick="setAuthMode('auto')">新设备自动放行</button>
+        </div>
+        <div class="row">
+          <span class="muted">自助授权码</span>
+          <b id="selfCode" style="font-family:ui-monospace,monospace;font-size:19px;letter-spacing:5px;color:#9fc3ff">------</b>
+          <button onclick="regenSelfCode()">换一个</button>
+          <input id="selfCodeInput" placeholder="自定义 4-8 位数字" style="width:170px" maxlength="8" inputmode="numeric">
+          <button onclick="saveSelfCode()">保存</button>
+        </div>
+        <div class="muted" style="margin-top:10px;line-height:1.9">
+          手动放行：设备停在待授权，等你在下面点「放行」。<br>
+          自助授权码：电视上打开授权页，输入这个码就自己通过（只放行当前这台设备）。<br>
+          新设备自动放行：谁连上都直接用，不再拦（最省事，但等于不设门槛）。
+        </div>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin:0 0 10px">
+        <div style="flex:1;min-width:240px"><input id="devSearch" placeholder="搜设备码 / 机型 / IP / MAC / 设备标识" oninput="setDevQuery(this.value)"></div>
+        <select id="devSort" onchange="setDevSort(this.value)" title="排序方式">
+          <option value="status">待授权优先</option>
+          <option value="req">请求数从高到低</option>
+          <option value="recent">最近出现</option>
+        </select>
+        <button onclick="resetDevView()">重置</button>
+      </div>
+      <div class="chips" id="devFilter">
+        <button data-f="all" class="on" onclick="setDevFilter('all')">全部 <span id="cAll">0</span></button>
+        <button data-f="pending" onclick="setDevFilter('pending')">待授权 <span id="cPending">0</span></button>
+        <button data-f="ok" onclick="setDevFilter('ok')">已授权 <span id="cOk">0</span></button>
+        <button data-f="deny" onclick="setDevFilter('deny')">已拒绝 <span id="cDeny">0</span></button>
+      </div>
+      <div class="muted" style="margin:10px 0 4px;line-height:1.9" id="devHint">
+        设备按 APP 上报的本机标识识别（android_id + 网卡 MAC），换网络、换 IP 都还是同一台，不会再冒出新设备。
+      </div>
+      <div class="muted" id="orphanHint" style="display:none;margin:0 0 8px"></div>
+      <div class="devwrap">
+        <table>
+          <thead><tr><th>设备码</th><th>设备信息</th><th>设备标识 / 网络</th><th>状态</th><th>请求 / 拦截</th><th>最近出现</th><th></th></tr></thead>
+          <tbody id="devBody"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager" id="devPager"></div>
+    </div>
+
+    <!-- 黑名单 -->
+    <div class="box" id="blkBox">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">黑名单</h2>
+        <span class="badge" id="blkHint">-</span>
+        <div class="sp"></div>
+        <button onclick="loadBlocks()">刷新</button>
+      </div>
+      <div class="muted" style="margin-bottom:12px;line-height:1.9">
+        IP 拉黑：这个网络发来的请求一律被挡。<br>
+        设备拉黑：按 APP 上报的 MAC / 设备标识挡，换 IP、换宽带、换网络都还是挡，也不允许再自助授权。
+      </div>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">未授权超额自动封禁</b>
+          <span class="badge" id="ablkHint">-</span>
+          <div class="sp"></div>
+          <button id="btnAbOn" onclick="setAutoBlk({on:true})">开启</button>
+          <button id="btnAbOff" onclick="setAutoBlk({on:false})">关闭</button>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <span class="muted">未授权设备成功请求累计满</span>
+          <input id="abNum" style="width:96px" inputmode="numeric">
+          <span class="muted">次 → 自动拉黑</span>
+          <button id="btnAbIpOn" onclick="setAutoBlk({ip:true})">设备 + 当前 IP</button>
+          <button id="btnAbIpOff" onclick="setAutoBlk({ip:false})">只封设备</button>
+          <button class="primary" onclick="setAutoBlk({num:secNum('abNum')})">保存阈值</button>
+        </div>
+        <div class="muted" style="margin-top:8px;line-height:1.9">
+          只统计未授权设备的成功请求（2xx / 3xx）：被门禁挡掉的、被限流挡掉的都不算，已授权设备完全不参与计数。<br>
+          封禁时把它的 MAC / 设备标识一起拉黑，换网络也挡；选「设备 + 当前 IP」还会连它当时的网络 IP 一起封。<br>
+          如果那个 IP 上还有已授权的设备（同一个网络），就只封设备、不封 IP，免得把你自己的盒子一起挡了。<br>
+          手动把设备移出黑名单后，计数从 0 重新开始。
+        </div>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <select id="blkKind" style="width:160px">
+          <option value="ip">IP</option>
+          <option value="dev">MAC / 设备标识</option>
+          <option value="code">设备码</option>
+        </select>
+        <div style="flex:1;min-width:220px"><input id="blkValue" placeholder="填 IP / MAC / 设备标识，或设备码（如 9806）"></div>
+        <div style="flex:1;min-width:160px"><input id="blkNote" placeholder="备注（可不填）" maxlength="60"></div>
+        <button class="danger" onclick="addBlock()">加入黑名单</button>
+      </div>
+      <div class="devwrap">
+        <table>
+          <thead><tr><th>类型</th><th>对象</th><th>备注</th><th>命中</th><th>最近命中</th><th>加入时间</th><th></th></tr></thead>
+          <tbody id="blkBody"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager" id="blkPager"></div>
+    </div>
+
+    <!-- 账号使用方式 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">账号使用方式</h2>
+        <span class="badge" id="shareHint">-</span>
+      </div>
+      <p class="muted" style="margin:0 0 12px">
+        决定中转要不要拿池子里的会员账号去换高清。盒子界面上是否显示会员号，由这里决定。
+      </p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button id="btnShareOff" onclick="setShare('off')">纯游客（不碰账号 · 最高 480P）</button>
+        <button id="btnShareStealth" onclick="setShare('stealth')">用账号但隐藏身份（1080P · 盒子看不到会员号）</button>
+        <button id="btnShareFull" onclick="setShare('full')">直接用账号（1080P+ · 盒子会显示会员号）</button>
+      </div>
+      <p class="muted" style="margin:12px 0 0">
+        纯游客：请求里不带任何账号，零封号风险，画质上限 480P。<br>
+        隐藏身份：用账号换高清，但盒子问"我是谁"时一律回答未登录，界面上不出现会员号。<br>
+        直接用账号：原样注入，画质最好，但盒子会员中心会显示账号昵称，多设备共用有风控风险。
+      </p>
+    </div>
+
+    <!-- 播放画质 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">播放画质</h2>
+        <span class="badge" id="qualityHint">-</span>
+      </div>
+      <p class="muted" style="margin:0 0 12px">
+        盒子点开播放时，中转向 B站 请求的清晰度档位。改完立即生效，盒子下次播放就按新档位取流，不用重装 APP。
+      </p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button id="btnQ4k" onclick="setQuality('4k')">4K 优先（最高画质）</button>
+        <button id="btnQ1080" onclick="setQuality('1080')">最高 1080P</button>
+        <button id="btnQAuto" onclick="setQuality('auto')">跟随盒子设置</button>
+      </div>
+      <p class="muted" style="margin:12px 0 0">
+        4K 优先：一律向 B站 要最高档，片源有 4K 就给 4K，没有就自动给它的最高档（4K 和 1080P+ 需要账号有大会员）。<br>
+        最高 1080P：封顶 1080P，省带宽、起播更快，普通登录账号就够。<br>
+        跟随盒子设置：中转不改档位，盒子自己选什么就取什么。
+      </p>
+    </div>
+
+    <!-- 分地区代理出口 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">代理出口</h2>
+        <span class="badge" id="proxyHint">加载中…</span>
+        <div class="sp"></div>
+        <button id="btnProxyOn" onclick="setProxyEnabled(true)">开启</button>
+        <button id="btnProxyOff" onclick="setProxyEnabled(false)">关闭</button>
+      </div>
+      <p class="muted" style="margin:0 0 12px;line-height:1.9">
+        与 biliroaming-go-server 一样提供 CN / HK / TW / TH / 默认五组出口。请求带 area、region、country 或 locale 时自动选地区；地区出口留空时该地区直接连接，未识别地区才使用默认出口。<br>
+        支持 http://、https://、socks4://、socks5://，可写账号密码，例如 socks5://user:pass@127.0.0.1:1080。留空保存表示保持原值，凭据不会在页面回显。
+      </p>
+      <div id="proxyRows"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" onclick="saveProxy()">保存代理设置</button>
+        <span class="badge" id="proxyMsg"></span>
+      </div>
+    </div>
+
+    <!-- 防刷与安全 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">防刷与安全</h2>
+        <span class="badge" id="secHint">-</span>
+      </div>
+      <p class="muted" style="margin:0 0 12px">
+        挡的是三类白嫖：抓包抄走设备标识直接用、同一个 IP 蹭已授权盒子、拿着地址用脚本刷。默认档位正常盒子碰不到，脚本一刷就断。
+      </p>
+      <div class="grid" style="margin-bottom:14px">
+        <div class="card"><div class="k">限流拦截（本次启动）</div><div class="v" id="sec-rl">-</div></div>
+        <div class="card"><div class="k">可疑设备</div><div class="v" id="sec-sus">-</div></div>
+      </div>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">请求限流</b>
+          <span class="badge" id="rlHint">-</span>
+          <div class="sp"></div>
+          <button id="btnRlOn" onclick="setSec({rlOn:true})">开启</button>
+          <button id="btnRlOff" onclick="setSec({rlOn:false})">关闭</button>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <span class="muted">单设备</span>
+          <input id="rlDev" style="width:88px" inputmode="numeric">
+          <span class="muted">次/分 · 单 IP</span>
+          <input id="rlIp" style="width:88px" inputmode="numeric">
+          <span class="muted">次/分 · 无标识</span>
+          <input id="rlAnon" style="width:88px" inputmode="numeric">
+          <span class="muted">次/分 · 单号取流</span>
+          <input id="rlAcc" style="width:88px" inputmode="numeric">
+          <span class="muted">次/时</span>
+          <button class="primary" onclick="saveSec()">保存阈值</button>
+        </div>
+        <div class="muted" style="margin-top:8px;line-height:1.9" id="rlStatLine">-</div>
+      </div>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">指纹漂移检测</b>
+          <span class="badge" id="driftHint">-</span>
+          <div class="sp"></div>
+          <button id="btnDriftOn" onclick="setSec({driftOn:true})">开启</button>
+          <button id="btnDriftOff" onclick="setSec({driftOn:false})">关闭</button>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <span class="muted">24 小时内出现在超过</span>
+          <input id="driftSeg" style="width:70px" inputmode="numeric">
+          <span class="muted">个不同网段 → 标为可疑 ·</span>
+          <button id="btnDriftMark" onclick="setSec({driftAuto:false})">只标记</button>
+          <button id="btnDriftAuto" onclick="setSec({driftAuto:true})">自动转待授权</button>
+        </div>
+        <div class="muted" style="margin-top:8px;line-height:1.9">
+          一台盒子正常只在一个网段里活动。抓包抄走的设备标识，往往一天之内从好几个地方冒出来——这就是复刻的特征。<br>
+          只标记：面板上给这台设备打红标，你自己决定怎么处理。自动转待授权：超过阈值直接退回待授权，它下次点播会被挡。
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">未授权设备可浏览</b>
+          <span class="badge" id="browseHint">-</span>
+          <div class="sp"></div>
+          <button id="btnBrowseOn" onclick="setSec({gateBrowse:true})">开启</button>
+          <button id="btnBrowseOff" onclick="setSec({gateBrowse:false})">关闭</button>
+        </div>
+        <div class="muted" style="line-height:1.9">
+          开启后，待授权设备也能正常加载首页、推荐、分区、搜索和封面 —— 只是点播放时仍然拦，会弹授权页。<br>
+          关闭 = 严格模式：待授权设备连推荐页都刷不出来（之前的做法，换 IP 被认成新设备的盒子会满屏「加载失败」）。
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 运行状态 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">运行状态</h2>
+        <span class="badge" id="mUp">-</span>
+      </div>
+      <div class="grid" style="margin-bottom:14px">
+        <div class="card"><div class="k">上游平均耗时</div><div class="v" id="m-avg">-</div></div>
+        <div class="card"><div class="k">请求失败率</div><div class="v" id="m-fail">-</div></div>
+        <div class="card"><div class="k">4K 并发 / 今日峰值</div><div class="v" id="m-4k">-</div></div>
+        <div class="card"><div class="k">缓存命中率</div><div class="v" id="m-cache">-</div></div>
+      </div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#0f1420">
+        <div class="row" style="margin-bottom:10px">
+          <b style="font-size:13px">账号分配</b>
+          <span class="badge" id="accModeHint">-</span>
+          <div class="sp"></div>
+          <button id="btnAccDev" onclick="setAccMode('device')">按设备固定</button>
+          <button id="btnAccRR" onclick="setAccMode('rr')">每次轮询</button>
+        </div>
+        <div id="accMeta" class="muted" style="line-height:1.95">加载中…</div>
+        <div class="muted" style="margin-top:8px;line-height:1.9">
+          按设备固定：一台盒子认准一个号，多台同时看 4K 也不会挤在同一个号上被限速。<br>
+          每次轮询：每条请求换一个号，适合号多设备少的情况。
+        </div>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <span class="muted">接口缓存</span>
+        <button id="btnCacheOn" onclick="setCache(true)">开启</button>
+        <button id="btnCacheOff" onclick="setCache(false)">关闭</button>
+        <span style="width:10px"></span>
+        <span class="muted">时长</span>
+        <button class="ttl" data-ttl="60" onclick="setCacheTtl(60)">1 分钟</button>
+        <button class="ttl" data-ttl="300" onclick="setCacheTtl(300)">5 分钟</button>
+        <button class="ttl" data-ttl="600" onclick="setCacheTtl(600)">10 分钟</button>
+        <button class="ttl" data-ttl="900" onclick="setCacheTtl(900)">15 分钟</button>
+        <div class="sp"></div>
+        <button onclick="clearCache()">清空缓存</button>
+      </div>
+      <div class="badge" id="cacheHint" style="margin-top:10px">-</div>
+      <p class="muted" style="margin:10px 0 0">
+        只缓存首页、番剧详情、视频详情、搜索这类「谁问都一样」的接口；取流、账号、心跳上报一律不缓存，盒子看到的画质和授权状态永远是最新的。<br>
+        4K 并发 = 此刻正在向 B站 要 4K 的设备数；失败率统计本进程启动以来的所有上游请求。
+      </p>
+    </div>
+
+    <!-- 添加会员账号 -->
+    <div class="box">
+      <h2>添加会员账号</h2>
+      <div class="tabs">
+        <button class="on" data-tab="qr" onclick="tab('qr')">扫码登录</button>
+        <button data-tab="sms" onclick="tab('sms')">手机验证码</button>
+        <button data-tab="paste" onclick="tab('paste')">粘贴 Cookie</button>
+      </div>
+
+      <div class="pane on" id="pane-qr">
+        <div class="row">
+          <div id="qrbox"><span style="color:#555;font-size:12px">点下面按钮生成</span></div>
+          <div style="flex:1;min-width:240px">
+            <button class="primary" onclick="newQr()">生成二维码</button>
+            <p class="muted" style="margin-top:12px">用手机 B站 App 扫码 → 在手机上点确认。<br>登录成功后 Cookie 会自动进池，状态会在这里变绿。</p>
+            <div class="okc" id="qrMsg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-sms">
+        <div class="row" style="max-width:520px">
+          <div style="flex:1;min-width:200px"><input id="tel" placeholder="手机号" maxlength="11"></div>
+          <button onclick="sendSms()">发送验证码</button>
+        </div>
+        <div class="row" style="max-width:520px;margin-top:10px">
+          <div style="flex:1;min-width:200px"><input id="code" placeholder="短信验证码" maxlength="6"></div>
+          <button class="primary" onclick="verifySms()">登录</button>
+        </div>
+        <div class="err" id="smsMsg"></div>
+        <p class="muted">验证码能正常发出。但 B站 对短信登录这一步强制滑块校验，纯接口过不去 —— 加号还是用扫码，效果一样，3 秒完成。</p>
+      </div>
+
+      <div class="pane" id="pane-paste">
+        <textarea id="ck" placeholder="SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx" style="width:100%;height:90px;background:#0c111b;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:10px;font-size:12px"></textarea>
+        <div style="margin-top:10px"><button class="primary" onclick="pasteCk()">添加</button></div>
+        <div class="err" id="pasteMsg"></div>
+      </div>
+    </div>
+
+    <!-- Cookie 池 -->
+    <div class="box">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">Cookie 池</h2>
+        <div class="sp"></div>
+        <button onclick="checkAll()">全部校验</button>
+      </div>
+      <table>
+        <thead><tr><th>账号</th><th>UID</th><th>状态</th><th>会员</th><th>来源</th><th>最近校验</th><th></th></tr></thead>
+        <tbody id="accBody"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h2>运行日志</h2>
+      <div class="log" id="logs"></div>
+    </div>
+  </div>
+
+  <!-- 修改管理员密码 -->
+  <div id="pwModal" class="modal hide" onclick="if(event.target===this)closePw()">
+    <div class="modal-card">
+      <h2>修改管理员密码</h2>
+      <label class="fl">当前密码</label>
+      <input id="pwOld" type="password" autocomplete="current-password" placeholder="现在用的后台密码">
+      <label class="fl">新密码</label>
+      <input id="pwNew" type="password" autocomplete="new-password" placeholder="至少 6 位">
+      <label class="fl">确认新密码</label>
+      <input id="pwNew2" type="password" autocomplete="new-password" placeholder="再输一遍">
+      <div class="err" id="pwErr"></div>
+      <div class="okc" id="pwOk"></div>
+      <div class="row" style="margin-top:4px">
+        <div class="sp"></div>
+        <button onclick="closePw()">取消</button>
+        <button class="primary" id="pwBtn" onclick="doChangePw()">确认修改</button>
+      </div>
+      <div class="muted" style="margin-top:10px">改完这个密码，其他设备上的登录会失效，当前这台不受影响。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let pollTimer=null, qrKey=null;
+/* HTML 转义：凡是服务端来的字符串（设备名/UA、账号昵称、日志）进 innerHTML 前都必须过一遍 */
+function esc(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+/* 放进 onclick 引号里的 id：只留安全字符 */
+function idSafe(v){return String(v==null?'':v).replace(/[^A-Za-z0-9_-]/g,'');}
+
+function q(u,opt){return fetch(u,Object.assign({headers:{'Content-Type':'application/json'}},opt)).then(r=>r.json());}
+function doLogin(){
+  q('/panel-api/login',{method:'POST',body:JSON.stringify({password:document.getElementById('pw').value})}).then(r=>{
+    if(r.ok){location.reload();}else{document.getElementById('loginErr').textContent=r.msg||'登录失败';}
+  });
+}
+function logout(){q('/panel-api/logout',{method:'POST'}).then(()=>location.reload()).catch(()=>location.reload());}
+function openPw(){
+  ['pwOld','pwNew','pwNew2'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('pwErr').textContent='';
+  document.getElementById('pwOk').textContent='';
+  document.getElementById('pwBtn').disabled=false;
+  document.getElementById('pwModal').classList.remove('hide');
+  setTimeout(()=>{const el=document.getElementById('pwOld');if(el)el.focus();},50);
+}
+function closePw(){document.getElementById('pwModal').classList.add('hide');}
+function doChangePw(){
+  const o=document.getElementById('pwOld').value.trim();
+  const n=document.getElementById('pwNew').value.trim();
+  const n2=document.getElementById('pwNew2').value.trim();
+  const e=document.getElementById('pwErr'), okEl=document.getElementById('pwOk'), btn=document.getElementById('pwBtn');
+  e.textContent='';okEl.textContent='';
+  if(!o){e.textContent='先填当前密码';return;}
+  if(n.length<6){e.textContent='新密码至少 6 位';return;}
+  if(n.length>64){e.textContent='新密码最多 64 位';return;}
+  if(n!==n2){e.textContent='两次输入的新密码不一样';return;}
+  if(n===o){e.textContent='新密码不能和当前密码一样';return;}
+  btn.disabled=true;
+  q('/panel-api/password',{method:'POST',body:JSON.stringify({old:o,next:n})}).then(r=>{
+    btn.disabled=false;
+    if(r&&r.ok){
+      okEl.textContent='密码已更新 ✓';
+      ['pwOld','pwNew','pwNew2'].forEach(id=>{document.getElementById(id).value='';});
+      setTimeout(closePw,1200);
+    } else {
+      e.textContent=(r&&r.msg)||'修改失败，再试一次';
+    }
+  }).catch(()=>{btn.disabled=false;e.textContent='网络不通，再试一次';});
+}
+function tab(n){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===n));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+n));
+}
+function fmt(t){if(!t)return '-';const d=new Date(t);const p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+function due(t){if(!t)return '';const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+function refresh(){
+  q('/panel-api/overview').then(r=>{
+    if(r.needLogin){document.getElementById('login').classList.remove('hide');document.getElementById('main').classList.add('hide');return;}
+    document.getElementById('login').classList.add('hide');
+    document.getElementById('main').classList.remove('hide');
+    document.getElementById('s-valid').innerHTML=r.valid+' <small>/ '+r.accounts+'</small>';
+    document.getElementById('s-acc').textContent=r.accounts;
+    document.getElementById('s-req').textContent=r.today;
+    document.getElementById('s-last').textContent=fmt(r.lastOk);
+    paintShare(r.shareMode||'off');
+    paintQuality(r.qualityMode||'4k');
+    loadAcc(); loadLogs(); loadDevices(); loadMetrics(); loadSecurity(); loadBlocks(); loadProxy();
+  });
+}
+/* 设备列表：分页（默认 10 条/页）+ 按状态筛选 + 待授权优先排序 */
+const DEV={all:[],filter:'all',page:1,size:10,query:'',sort:'status'};
+(function(){try{const s=parseInt(localStorage.getItem('devPageSize')||'10',10);if([10,20,50].indexOf(s)>=0)DEV.size=s;
+  const st=localStorage.getItem('devSort')||'status';if(['status','req','recent'].indexOf(st)>=0)DEV.sort=st;}catch(e){}})();
+
+function loadDevices(){
+  q('/panel-api/devices').then(r=>{
+    if(!r.ok) return;
+    document.getElementById('gateHint').textContent = r.gateOn
+      ? ('授权闸已开 · 只拦' + (r.gateLevel==='all'?'全部接口':'内容接口') + ' · 待授权 ' + r.pending + ' 台')
+      : '授权闸已关闭，任何设备都能解析';
+    document.getElementById('gateBtn').textContent = r.gateOn ? '关闭授权闸' : '开启授权闸';
+    paintAuthMode(r.authMode || 'self');
+    document.getElementById('selfCode').textContent = r.selfCode || '------';
+    const a=document.getElementById('authUrl'); a.textContent=r.authUrl; a.href=r.authUrl;
+    const oh=document.getElementById('orphanHint');
+    if(oh){
+      if(r.orphan>0){
+        oh.style.display='';
+        oh.innerHTML='另有 '+r.orphan+' 条旧版按 IP 留下的无效记录（没有设备信息，已隐藏，不影响使用）'
+          +' <button style="margin-left:6px;padding:4px 10px;font-size:12px" onclick="purgeOrphan()">清理掉</button>';
+      } else { oh.style.display='none'; oh.innerHTML=''; }
+    }
+    DEV.all=(r.list||[]).slice();
+    const sv=document.getElementById('devSort'); if(sv) sv.value=DEV.sort;
+    renderDevices();
+  });
+}
+function devIdent(d){
+  const isWeb = d.kind==='web' || /^web[0-9a-f]{12,40}$/i.test(String(d.did||''));
+  if(isWeb && d.did) return '浏览器标识 '+d.did.slice(3,11).toUpperCase();
+  if(d.mac) return 'MAC '+d.mac;
+  if(d.did) return 'ID '+(d.did.length>12?d.did.slice(0,12)+'…':d.did);
+  const m=(d.macs||[])[0]; if(m) return 'MAC '+m;
+  const i=(d.dids||[])[0]; if(i) return 'ID '+(i.length>12?i.slice(0,12)+'…':i);
+  return '未上报设备信息';
+}
+function devRow(d,rankNo){
+  const ident=devIdent(d);
+  const stable=(d.mac||d.did||(d.macs||[]).length||(d.dids||[]).length);
+  const did=idSafe(d.id);
+  return `<tr>
+      <td>${rankNo?'<span class="muted" style="font-size:11px;display:block;line-height:1.2">#'+rankNo+'</span>':''}<b style="font-family:ui-monospace,monospace;color:#9fc3ff">${esc(d.code||'-')}</b></td>
+      <td>${esc(d.model||d.name||'未知机型')}<br><span class="muted" style="font-size:12px">首次接入 ${esc(fmt(d.firstAt))}</span></td>
+      <td class="muted"><span style="color:${stable?'#7ee0a8':'#e0a97e'};font-family:ui-monospace,monospace;font-size:12px">${esc(ident)}</span><br><span style="font-size:12px">最近网络 ${esc(d.ip||'-')}</span></td>
+      <td>${d.status==='ok'?'<span class="tag ok">已授权</span>':d.status==='deny'?'<span class="tag bad">已拒绝</span>':'<span class="tag vip">待授权</span>'}${d.inBlock?'<span class="tag bad" style="margin-left:4px">已拉黑</span>':''}${d.autoBlk?'<span class="tag bad" style="margin-left:4px" title="未授权请求成功 '+esc(d.autoBlk.n)+' 次，系统自动拉黑">自动封</span>':''}${d.suspect?'<span class="tag bad" style="margin-left:4px" title="24 小时内出现在 '+esc(d.suspect.segs)+' 个不同网段，疑似设备标识被抓包复用">可疑</span>':''}</td>
+      <td class="muted">${Number(d.req)||0} / ${Number(d.blocked)||0}${d.status!=='ok'&&Number(d.okReq)>0?'<br><span style="font-size:11px;color:'+(Number(d.okReq)>=((typeof ABLK!=='undefined'?ABLK.num:1000)*0.8)?'#ffc861':'#9fb0c9')+'">未授权成功 '+Number(d.okReq)+'/'+(typeof ABLK!=='undefined'?ABLK.num:1000)+'</span>':''}${d.segs24?'<br><span style="font-size:11px">24h 网段 '+esc(d.segs24)+'</span>':''}</td>
+      <td class="muted">${esc(fmt(d.lastAt))}</td>
+      <td style="text-align:right;white-space:nowrap">${d.status==='ok'
+        ? '<button onclick="devAct(\'deny\',\''+did+'\')">取消授权</button>'
+        : '<button class="primary" onclick="devAct(\'approve\',\''+did+'\')">放行</button><button onclick="devAct(\'deny\',\''+did+'\')">拒绝</button>'}
+        ${d.suspect?'<button onclick="clearSuspect(\''+did+'\')">清标记</button>':''}
+        ${d.inBlock
+          ? '<button onclick="unblockDevice(\''+did+'\')">移出黑名单</button>'
+          : '<button class="danger" onclick="blockDevice(\''+did+'\')">拉黑</button>'}
+        <button class="danger" onclick="devAct('delete','${did}')">删除</button>
+      </td></tr>`;
+}
+function devSortCmp(x,y){
+  const st=DEV.sort;
+  if(st==='req') return (y.req||0)-(x.req||0) || (y.lastAt||0)-(x.lastAt||0);
+  if(st==='recent') return (y.lastAt||0)-(x.lastAt||0);
+  const rank={pending:0,ok:1,deny:2};
+  const rx=rank[x.status]===undefined?9:rank[x.status], ry=rank[y.status]===undefined?9:rank[y.status];
+  if(rx!==ry) return rx-ry;
+  return (y.lastAt||0)-(x.lastAt||0);
+}
+function devMatches(d,kw){
+  const hay=[d.code,d.name,d.model,d.ip,d.ua,d.kind==='web'?'浏览器':'']
+    .concat(d.ips||[],d.macs||[],d.dids||[],d.mac?[d.mac]:[],d.did?[d.did]:[])
+    .filter(Boolean).join(' ').toLowerCase();
+  return kw.split(/\s+/).every(w=>hay.indexOf(w)>=0);
+}
+function devFiltered(){
+  const kw=String(DEV.query||'').trim().toLowerCase();
+  let list=DEV.filter==='all' ? DEV.all.slice() : DEV.all.filter(d=>d.status===DEV.filter);
+  if(kw) list=list.filter(d=>devMatches(d,kw));
+  return list.sort(devSortCmp);
+}
+function renderDevices(){
+  const all=DEV.all;
+  const cnt={all:all.length,pending:0,ok:0,deny:0};
+  all.forEach(d=>{ if(cnt[d.status]!==undefined) cnt[d.status]++; });
+  document.getElementById('cAll').textContent=cnt.all;
+  document.getElementById('cPending').textContent=cnt.pending;
+  document.getElementById('cOk').textContent=cnt.ok;
+  document.getElementById('cDeny').textContent=cnt.deny;
+  document.querySelectorAll('#devFilter button').forEach(b=>b.classList.toggle('on',b.dataset.f===DEV.filter));
+  const list=devFiltered();
+  const total=list.length;
+  const totalPages=Math.max(1,Math.ceil(total/DEV.size));
+  if(DEV.page>totalPages)DEV.page=totalPages;
+  if(DEV.page<1)DEV.page=1;
+  const body=document.getElementById('devBody');
+  if(!total){
+    const kw=String(DEV.query||'').trim();
+    body.innerHTML='<tr><td colspan="7" class="muted">'+(kw?('没搜到匹配「'+esc(kw)+'」的设备')
+      :(all.length?'这个状态下没有设备':'还没有设备，盒子一连上就会自动出现在这里'))+'</td></tr>';
+  } else {
+    const start=(DEV.page-1)*DEV.size;
+    const ranked=(DEV.sort==='req');
+    body.innerHTML=list.slice(start,start+DEV.size).map((d,i)=>devRow(d,ranked?(start+i+1):0)).join('');
+  }
+  renderDevPager(total,totalPages);
+}
+function renderDevPager(total,totalPages){
+  const p=document.getElementById('devPager');
+  if(!total){p.innerHTML='';return;}
+  const from=(DEV.page-1)*DEV.size+1, to=Math.min(DEV.page*DEV.size,total);
+  const win=[1,totalPages];
+  for(let i=DEV.page-2;i<=DEV.page+2;i++) if(i>1&&i<totalPages) win.push(i);
+  const pages=win.filter((v,i,arr)=>arr.indexOf(v)===i).sort((a,b)=>a-b);
+  let btns='', last=0;
+  pages.forEach(n=>{
+    if(last && n-last>1) btns+='<span class="muted" style="padding:0 2px">…</span>';
+    btns+='<button class="'+(n===DEV.page?'on':'')+'" onclick="gotoDevPage('+n+')">'+n+'</button>';
+    last=n;
+  });
+  p.innerHTML='<button onclick="gotoDevPage('+(DEV.page-1)+')"'+(DEV.page<=1?' disabled':'')+'>‹ 上一页</button>'
+    +btns
+    +'<button onclick="gotoDevPage('+(DEV.page+1)+')"'+(DEV.page>=totalPages?' disabled':'')+'>下一页 ›</button>'
+    +'<span class="info">第 '+from+'–'+to+' 条 / 共 '+total+' 台　每页 '
+    +'<select onchange="setDevSize(this.value)">'+[10,20,50].map(s=>'<option value="'+s+'"'+(s===DEV.size?' selected':'')+'>'+s+'</option>').join('')+'</select> 条</span>';
+}
+function setDevFilter(f){DEV.filter=f;DEV.page=1;renderDevices();}
+function setDevQuery(v){DEV.query=String(v||'');DEV.page=1;renderDevices();}
+function setDevSort(v){
+  if(['status','req','recent'].indexOf(v)<0) return;
+  DEV.sort=v;DEV.page=1;try{localStorage.setItem('devSort',v);}catch(e){}renderDevices();
+}
+function resetDevView(){
+  DEV.query='';DEV.sort='status';DEV.filter='all';DEV.page=1;
+  const si=document.getElementById('devSearch'); if(si) si.value='';
+  const ss=document.getElementById('devSort'); if(ss) ss.value='status';
+  try{localStorage.setItem('devSort','status');}catch(e){}
+  renderDevices();
+}
+function setDevSize(v){const n=parseInt(v,10);if([10,20,50].indexOf(n)<0)return;DEV.size=n;DEV.page=1;try{localStorage.setItem('devPageSize',String(n));}catch(e){}renderDevices();}
+function gotoDevPage(n){const tp=Math.max(1,Math.ceil(devFiltered().length/DEV.size));if(n<1||n>tp)return;DEV.page=n;renderDevices();document.getElementById('devBody').scrollIntoView({block:'nearest',behavior:'smooth'});}
+function devAct(act,id){q('/panel-api/devices/'+act,{method:'POST',body:JSON.stringify({id})}).then(()=>loadDevices());}
+function purgeOrphan(){if(!confirm('清掉旧版按 IP 留下的无效设备记录？（不影响已授权的真实设备）'))return;q('/panel-api/devices/purge',{method:'POST',body:'{}'}).then(()=>loadDevices());}
+function approveAll(){q('/panel-api/devices/approveall',{method:'POST',body:'{}'}).then(r=>{if(r.ok)loadDevices();});}
+function clearUnauth(){
+  const all=DEV.all||[];
+  const pend=all.filter(d=>d.status==='pending').length;
+  const deny=all.filter(d=>d.status==='deny').length;
+  const n=pend+deny;
+  if(!n){alert('现在没有未授权的设备记录，不用清。');return;}
+  if(!confirm('一键清理未授权设备记录？\n\n将删除 '+n+' 条：待授权 '+pend+' 条、已拒绝 '+deny+' 条。\n已授权的设备不会动。\n\n被删的设备下次连上时会重新出现为「待授权」。'))return;
+  const btn=document.getElementById('clearUnauthBtn');
+  if(btn){btn.disabled=true;btn.textContent='清理中…';}
+  const done=(msg)=>{if(btn){btn.disabled=false;btn.textContent='一键清理未授权';}if(msg)alert(msg);};
+  q('/panel-api/devices/clearunauth',{method:'POST',body:JSON.stringify({mode:'unauth'})}).then(r=>{
+    if(r&&r.ok){DEV.page=1;DEV.filter='all';loadDevices();done(r.n?('已清理 '+r.n+' 条未授权记录，还剩 '+r.left+' 台设备。'):'没有可清理的记录。');}
+    else done((r&&r.msg)||'清理失败，再试一次。');
+  }).catch(()=>done('网络不通，再试一次。'));
+}
+/* ---------------- 黑名单 ---------------- */
+const BLK={ips:[],devs:[],page:1,size:10};   // 黑名单每页 10 条
+const ABLK={on:true,num:1000,ip:true};
+function loadBlocks(){
+  return q('/panel-api/blocks').then(r=>{
+    if(!r||!r.ok)return;
+    BLK.ips=r.ips||[]; BLK.devs=r.devs||[];
+    if(r.auto){ABLK.on=!!r.auto.on;ABLK.num=Number(r.auto.num)||1000;ABLK.ip=!!r.auto.ip;}
+    paintAutoBlk();
+    renderBlocks();
+  }).catch(()=>{});
+}
+function paintAutoBlk(){
+  const hint=document.getElementById('ablkHint');
+  if(hint){
+    hint.textContent=(ABLK.on?'开':'关')+' · '+ABLK.num+' 次 · '+(ABLK.ip?'连 IP':'只封设备');
+    hint.style.color=ABLK.on?'#7bd88f':'#9fb0c9';
+  }
+  const n=document.getElementById('abNum'); if(n&&document.activeElement!==n)n.value=ABLK.num;
+  const mk=(id,on)=>{const b=document.getElementById(id);if(b)b.classList.toggle('primary',!!on);};
+  mk('btnAbOn',ABLK.on); mk('btnAbOff',!ABLK.on); mk('btnAbIpOn',ABLK.ip); mk('btnAbIpOff',!ABLK.ip);
+}
+function setAutoBlk(patch){
+  q('/panel-api/autoblk',{method:'POST',body:JSON.stringify(patch||{})}).then(r=>{
+    if(r&&r.ok){ABLK.on=!!r.on;ABLK.num=Number(r.num)||1000;ABLK.ip=!!r.ip;paintAutoBlk();}
+    else alert('没保存上，再试一次');
+  }).catch(()=>alert('网络不通，再试一次'));
+}
+function blkRows(){
+  const rows=[];
+  BLK.ips.forEach(e=>rows.push({key:'ip|'+e.ip,label:e.ip,type:'ip',note:e.note,hits:e.hits,lastAt:e.lastAt,at:e.at,auto:e.auto}));
+  BLK.devs.forEach(e=>rows.push({key:e.key,label:e.value,type:e.type,note:e.note,hits:e.hits,lastAt:e.lastAt,at:e.at,auto:e.auto}));
+  rows.sort((a,b)=>(b.lastAt||b.at||0)-(a.lastAt||a.at||0));
+  return rows;
+}
+function renderBlocks(){
+  const body=document.getElementById('blkBody'); if(!body)return;
+  const hint=document.getElementById('blkHint');
+  const rows=blkRows();
+  if(hint) hint.textContent='IP '+BLK.ips.length+' · 设备 '+BLK.devs.length+' · 共 '+rows.length+' 条';
+  const total=rows.length;
+  const totalPages=Math.max(1,Math.ceil(total/BLK.size));
+  if(BLK.page>totalPages)BLK.page=totalPages;
+  if(BLK.page<1)BLK.page=1;
+  if(!total){
+    body.innerHTML='<tr><td colspan="7" class="muted">还没有拉黑任何 IP 或设备</td></tr>';
+    renderBlkPager(0,1);
+    return;
+  }
+  const start=(BLK.page-1)*BLK.size;
+  body.innerHTML=rows.slice(start,start+BLK.size).map(r=>'<tr>'
+    +'<td>'+(r.type==='ip'?'<span class="tag bad">IP</span>':'<span class="tag bad">'+(r.type==='mac'?'MAC':'设备')+'</span>')
+      +(r.auto?'<span class="tag bad" style="margin-left:4px" title="未授权请求超额，系统自动加入">自动</span>':'')+'</td>'
+    +'<td style="font-family:ui-monospace,monospace;color:#f0a0a0">'+esc(r.label)+'</td>'
+    +'<td class="muted">'+esc(r.note||'-')+'</td>'
+    +'<td class="muted">'+(Number(r.hits)||0)+'</td>'
+    +'<td class="muted">'+(r.lastAt?esc(fmt(r.lastAt)):'-')+'</td>'
+    +'<td class="muted">'+esc(fmt(r.at))+'</td>'
+    +'<td style="text-align:right"><button onclick="delBlock(\''+esc(r.key)+'\')">移出</button></td>'
+    +'</tr>').join('');
+  renderBlkPager(total,totalPages);
+}
+function renderBlkPager(total,totalPages){
+  const p=document.getElementById('blkPager'); if(!p)return;
+  if(!total){p.innerHTML='';return;}
+  const from=(BLK.page-1)*BLK.size+1, to=Math.min(BLK.page*BLK.size,total);
+  const win=[1,totalPages];
+  for(let i=BLK.page-2;i<=BLK.page+2;i++) if(i>1&&i<totalPages) win.push(i);
+  const pages=win.filter((v,i,arr)=>arr.indexOf(v)===i).sort((a,b)=>a-b);
+  let btns='', last=0;
+  pages.forEach(n=>{
+    if(last && n-last>1) btns+='<span class="muted" style="padding:0 2px">…</span>';
+    btns+='<button class="'+(n===BLK.page?'on':'')+'" onclick="gotoBlkPage('+n+')">'+n+'</button>';
+    last=n;
+  });
+  p.innerHTML='<button onclick="gotoBlkPage('+(BLK.page-1)+')"'+(BLK.page<=1?' disabled':'')+'>‹ 上一页</button>'
+    +btns
+    +'<button onclick="gotoBlkPage('+(BLK.page+1)+')"'+(BLK.page>=totalPages?' disabled':'')+'>下一页 ›</button>'
+    +'<span class="info">第 '+from+'–'+to+' 条 / 共 '+total+' 条　每页 '+BLK.size+' 条</span>';
+}
+function gotoBlkPage(n){
+  const tp=Math.max(1,Math.ceil(blkRows().length/BLK.size));
+  if(n<1||n>tp)return;
+  BLK.page=n;renderBlocks();
+  const b=document.getElementById('blkBody'); if(b)b.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function addBlock(){
+  const kind=(document.getElementById('blkKind')||{}).value||'ip';
+  const value=String((document.getElementById('blkValue')||{}).value||'').trim();
+  const note=String((document.getElementById('blkNote')||{}).value||'').trim();
+  if(!value){alert('先填要拉黑的对象');return;}
+  if(kind==='ip'&&!/^[0-9a-fA-F:.]+$/.test(value)){alert('IP 格式不对，例：183.216.249.212');return;}
+  q('/panel-api/blocks/add',{method:'POST',body:JSON.stringify({kind,value,note})}).then(r=>{
+    if(r&&r.ok){
+      document.getElementById('blkValue').value='';
+      document.getElementById('blkNote').value='';
+      loadBlocks(); loadDevices();
+      alert('已加入黑名单：IP '+r.ip+' 条、设备标识 '+r.dev+' 条。');
+    } else alert((r&&r.msg)||'没加上，再试一次');
+  }).catch(()=>alert('网络不通，再试一次'));
+}
+function delBlock(key){
+  if(!confirm('把这个从黑名单移出？移出后它又能正常访问了。'))return;
+  q('/panel-api/blocks/remove',{method:'POST',body:JSON.stringify({key})}).then(r=>{
+    if(r&&r.ok){loadBlocks();loadDevices();}
+  }).catch(()=>alert('网络不通，再试一次'));
+}
+function blockDevice(id){
+  const d=(DEV.all||[]).find(x=>x.id===id);
+  if(!d){alert('找不到这台设备，刷新一下再试');return;}
+  if(!confirm('拉黑这台设备？\n\n设备码 '+(d.code||'-')+' · '+(d.model||d.name||'未知机型')+'\n拉黑后它的请求一律被挡，也不能再自己授权。'))return;
+  let withIp=false;
+  if(d.ip) withIp=confirm('要不要连它最近的网络 IP 一起拉黑？\n\n'+d.ip+'\n\n注意：同一网络下所有设备都会被挡，一般不用勾。');
+  q('/panel-api/blocks/add',{method:'POST',body:JSON.stringify({kind:'device',id,withIp,note:'面板拉黑'})}).then(r=>{
+    if(r&&r.ok){alert('已拉黑：设备标识 '+r.dev+' 条'+(r.ip?'、IP '+r.ip+' 条':'')+'。');loadBlocks();loadDevices();}
+    else alert((r&&r.msg)||'没拉上，再试一次');
+  }).catch(()=>alert('网络不通，再试一次'));
+}
+function unblockDevice(id){
+  if(!confirm('把这台设备从黑名单移出？'))return;
+  q('/panel-api/blocks/remove',{method:'POST',body:JSON.stringify({kind:'device',id})}).then(r=>{
+    if(r&&r.ok){loadBlocks();loadDevices();}
+  }).catch(()=>alert('网络不通，再试一次'));
+}
+function setAuthMode(mode){q('/panel-api/authmode',{method:'POST',body:JSON.stringify({mode})}).then(()=>refresh());}
+function regenSelfCode(){q('/panel-api/authmode',{method:'POST',body:JSON.stringify({regen:true})}).then(()=>refresh());}
+function saveSelfCode(){
+  const v=String(document.getElementById('selfCodeInput').value||'').replace(/\D/g,'');
+  if(v.length<4||v.length>8){alert('请输入 4-8 位数字');return;}
+  document.getElementById('selfCodeInput').value='';
+  q('/panel-api/authmode',{method:'POST',body:JSON.stringify({code:v})}).then(()=>refresh());
+}
+function paintAuthMode(mode){
+  const map={
+    manual:['手动放行 · 等你点','#9fb0c9'],
+    self:['自助授权码 · 电视上自己过','#7bd88f'],
+    auto:['新设备自动放行','#ffc861'],
+  };
+  const m=map[mode]||map.self;
+  const h=document.getElementById('authModeHint');
+  if(h){h.textContent=m[0];h.style.color=m[1];}
+  [['manual','btnAuthManual'],['self','btnAuthSelf'],['auto','btnAuthAuto']].forEach(([k,id])=>{
+    const b=document.getElementById(id);
+    if(b) b.classList.toggle('primary',k===mode);
+  });
+}
+function toggleGate(){
+  const on=document.getElementById('gateBtn').textContent.indexOf('开启')>=0;
+  q('/panel-api/gate',{method:'POST',body:JSON.stringify({on})}).then(()=>refresh());
+}
+function setShare(mode){
+  q('/panel-api/share',{method:'POST',body:JSON.stringify({mode})}).then(()=>refresh());
+}
+function paintShare(mode){
+  const hint=document.getElementById('shareHint');
+  const map={
+    off:['纯游客 · 不碰任何账号','#7bd88f'],
+    stealth:['用账号但隐藏身份','#ffc861'],
+    full:['直接用账号 · 会员号会显示','#ff7b7b'],
+  };
+  const it=map[mode]||map.off;
+  if(hint){hint.textContent=it[0];hint.style.color=it[1];}
+  ['btnShareOff','btnShareStealth','btnShareFull'].forEach((id)=>{
+    const el=document.getElementById(id); if(el) el.classList.remove('primary');
+  });
+  const cur={off:'btnShareOff',stealth:'btnShareStealth',full:'btnShareFull'}[mode]||'btnShareOff';
+  const el=document.getElementById(cur); if(el) el.classList.add('primary');
+}
+function setQuality(mode){
+  q('/panel-api/quality',{method:'POST',body:JSON.stringify({mode})}).then(()=>refresh());
+}
+function paintQuality(mode){
+  const hint=document.getElementById('qualityHint');
+  const map={
+    '4k':['4K 优先 · 最高画质','#9fc3ff'],
+    '1080':['最高 1080P','#7bd88f'],
+    auto:['跟随盒子设置','#ffc861'],
+  };
+  const it=map[mode]||map['4k'];
+  if(hint){hint.textContent=it[0];hint.style.color=it[1];}
+  ['btnQ4k','btnQ1080','btnQAuto'].forEach((id)=>{
+    const el=document.getElementById(id); if(el) el.classList.remove('primary');
+  });
+  const cur={'4k':'btnQ4k','1080':'btnQ1080',auto:'btnQAuto'}[mode]||'btnQ4k';
+  const el=document.getElementById(cur); if(el) el.classList.add('primary');
+}
+/* ---- 运行状态 ---- */
+function fmtUp(sec){const s=sec||0;const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?(h+' 小时 '+m+' 分'):(m+' 分钟');}
+function paintAccMode(mode){
+  const map={device:['按设备固定','#9fc3ff'],rr:['每次轮询','#ffc861']};
+  const it=map[mode]||map.device;
+  const hint=document.getElementById('accModeHint');
+  if(hint){hint.textContent=it[0];hint.style.color=it[1];}
+  ['btnAccDev','btnAccRR'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('primary');});
+  const el=document.getElementById(mode==='rr'?'btnAccRR':'btnAccDev');if(el)el.classList.add('primary');
+}
+function paintCache(c){
+  const on=!!(c&&c.on);
+  ['btnCacheOn','btnCacheOff'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('primary');});
+  const el=document.getElementById(on?'btnCacheOn':'btnCacheOff');if(el)el.classList.add('primary');
+  document.querySelectorAll('button.ttl').forEach(b=>b.classList.toggle('primary',Number(b.dataset.ttl)===(c&&c.ttl)));
+  const hint=document.getElementById('cacheHint');
+  if(hint)hint.textContent=(on?'缓存已开启':'缓存已关闭')+' · '+(c&&c.ttl||0)+' 秒 · '+((c&&c.items)||0)+' 条 · 占用 '+Math.round(((c&&c.bytes)||0)/1024)+' KB';
+}
+function loadMetrics(){
+  q('/panel-api/metrics').then(r=>{
+    if(!r||!r.ok) return;
+    const m=r.metrics||{}, c=r.cache||{};
+    const set=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
+    set('m-avg',(m.avgMs||0)+' <small>ms · p95 '+(m.p95Ms||0)+'</small>');
+    set('m-fail',(m.failRate||0)+' <small>% · '+(m.total||0)+' 次</small>');
+    set('m-4k',(m.k4Now||0)+' <small>/ 峰值 '+(m.k4Peak||0)+'</small>');
+    set('m-cache',(m.cacheRate||0)+' <small>% · '+(c.items||0)+' 条</small>');
+    const up=document.getElementById('mUp');
+    if(up)up.textContent='已运行 '+fmtUp(m.uptime)+' · 今日成功 '+(m.dayOk||0)+' / 失败 '+(m.dayFail||0);
+    paintAccMode(r.accountMode||'device');
+    paintCache(c);
+    const accs=r.accounts||[];
+    const box=document.getElementById('accMeta');
+    if(!box) return;
+    if(!accs.length){box.innerHTML='<span class="muted">还没有账号，下面扫码加一个</span>';return;}
+    box.innerHTML=accs.map(a=>{
+      const d=a.daysLeft;
+      let dueTxt='未校验';
+      if(a.vipDue){dueTxt=due(a.vipDue)+'（'+(d>=0?('剩 '+d+' 天'):'已过期')+'）';}
+      const urgent=(d!=null&&d>=0&&d<30)?' style="color:#ff9a9a"':'';
+      return '<div>· <b>'+esc(a.name||'未校验')+'</b> '
+        +(a.valid?'<span style="color:#7bd88f">有效</span>':'<span style="color:#ff7b7b">已失效</span>')
+        +' · '+(a.vip?'大会员':'普通')
+        +' · 到期 <span'+urgent+'>'+dueTxt+'</span>'
+        +' · 分到 '+(a.devices||0)+' 台设备</div>';
+    }).join('');
+  });
+}
+function setAccMode(mode){q('/panel-api/accountmode',{method:'POST',body:JSON.stringify({mode})}).then(()=>loadMetrics());}
+function setCache(on){q('/panel-api/cache',{method:'POST',body:JSON.stringify({on})}).then(()=>loadMetrics());}
+function setCacheTtl(ttl){q('/panel-api/cache',{method:'POST',body:JSON.stringify({ttl})}).then(()=>loadMetrics());}
+function clearCache(){q('/panel-api/cache',{method:'POST',body:JSON.stringify({clear:true})}).then(()=>loadMetrics());}
+
+/* ---- 分地区代理出口 ---- */
+const PROXY_AREAS=[['cn','中国大陆 CN'],['hk','香港 HK'],['tw','台湾 TW'],['th','泰国/东南亚 TH'],['default','默认出口']];
+let PROXY_STATE={enabled:false,entries:{}};
+function proxyRowsInit(){
+  const box=document.getElementById('proxyRows'); if(!box||box.dataset.ready)return;
+  box.dataset.ready='1';
+  box.innerHTML=PROXY_AREAS.map(([k,label])=>'<div class="row" style="gap:8px;margin:8px 0">'
+    +'<span class="muted" style="width:112px">'+label+'</span>'
+    +'<div style="flex:1;min-width:240px"><input id="proxy-'+k+'" autocomplete="off" placeholder="未配置（保持直连）"></div>'
+    +'<button onclick="testProxy(\''+k+'\')">测试出口</button>'
+    +'<button class="danger" onclick="clearProxy(\''+k+'\')">清空</button>'
+    +'<span class="badge" id="proxy-test-'+k+'"></span></div>').join('');
+}
+function paintProxy(r){
+  if(!r||!r.ok)return;
+  proxyRowsInit();PROXY_STATE=r;
+  const entries=r.entries||{};
+  PROXY_AREAS.forEach(([k])=>{
+    const el=document.getElementById('proxy-'+k),e=entries[k]||{};
+    if(el&&document.activeElement!==el){el.value='';el.placeholder=e.configured?('已配置：'+(e.display||'代理')):'未配置（保持直连）';}
+  });
+  const n=PROXY_AREAS.filter(([k])=>entries[k]&&entries[k].configured).length;
+  const h=document.getElementById('proxyHint');if(h){h.textContent=(r.enabled?'已开启':'已关闭')+' · 已配置 '+n+'/5';h.style.color=r.enabled?'#7bd88f':'#9fb0c9';}
+  const on=document.getElementById('btnProxyOn'),off=document.getElementById('btnProxyOff');
+  if(on)on.className=r.enabled?'primary':'';if(off)off.className=r.enabled?'':'primary';
+}
+function loadProxy(){proxyRowsInit();q('/panel-api/proxy').then(paintProxy).catch(()=>{});}
+function setProxyEnabled(enabled){
+  q('/panel-api/proxy',{method:'POST',body:JSON.stringify({enabled})}).then(r=>{paintProxy(r);document.getElementById('proxyMsg').textContent=r.ok?'已保存':'保存失败：'+(r.msg||'');});
+}
+function saveProxy(){
+  const body={};
+  PROXY_AREAS.forEach(([k])=>{const v=String((document.getElementById('proxy-'+k)||{}).value||'').trim();if(v)body[k]=v;});
+  if(!Object.keys(body).length){document.getElementById('proxyMsg').textContent='没有填写新地址；开关可用右上角按钮修改';return;}
+  q('/panel-api/proxy',{method:'POST',body:JSON.stringify(body)}).then(r=>{
+    document.getElementById('proxyMsg').textContent=r.ok?'代理设置已保存 ✓':'保存失败：'+(r.msg||'');
+    if(r.ok)paintProxy(r);
+  }).catch(()=>{document.getElementById('proxyMsg').textContent='网络不通，保存失败';});
+}
+function clearProxy(area){
+  const label=(PROXY_AREAS.find(x=>x[0]===area)||[])[1]||area;
+  if(!confirm('清空 '+label+' 的代理地址？'))return;
+  const body={};body[area]=null;
+  q('/panel-api/proxy',{method:'POST',body:JSON.stringify(body)}).then(r=>{paintProxy(r);document.getElementById('proxyMsg').textContent=r.ok?'已清空 '+label:'清空失败';});
+}
+function testProxy(area){
+  const el=document.getElementById('proxy-test-'+area);if(el)el.textContent='测试中…';
+  q('/panel-api/proxy/test',{method:'POST',body:JSON.stringify({area})}).then(r=>{
+    if(el)el.textContent=r.ok?((r.mode==='proxy'?'代理':'直连')+' IP '+(r.ip||'-')):('失败：'+(r.msg||'连接错误'));
+  }).catch(()=>{if(el)el.textContent='失败：网络错误';});
+}
+
+/* ---- 防刷与安全 ---- */
+let SEC = {};
+function secFill(id, val){ const el=document.getElementById(id); if(!el) return; if(document.activeElement===el) return; el.value=val; }
+function secNum(id){ const v=parseInt(String((document.getElementById(id)||{}).value||'').replace(/[^0-9]/g,''),10); return isFinite(v)?v:undefined; }
+function secOnOff(onId, offId, on){
+  const a=document.getElementById(onId), b=document.getElementById(offId);
+  if(a) a.className = on ? 'primary' : '';
+  if(b) b.className = on ? '' : 'primary';
+}
+function paintSec(r){
+  if(!r || !r.ok) return;
+  SEC = r;
+  const rl = r.rlOn !== false, dr = r.driftOn !== false;
+  document.getElementById('secHint').textContent =
+    '限流' + (rl?'开':'关') + ' · 漂移检测' + (dr?'开':'关') + ' · 浏览' + (r.gateBrowse!==false?'放行':'要授权');
+  document.getElementById('rlHint').textContent = rl ? '已开启' : '已关闭';
+  secOnOff('btnRlOn','btnRlOff',rl);
+  document.getElementById('driftHint').textContent = dr ? ('已开启 · 阈值 ' + r.driftSegMax + ' 个网段') : '已关闭';
+  secOnOff('btnDriftOn','btnDriftOff',dr);
+  secOnOff('btnDriftMark','btnDriftAuto',!r.driftAuto);
+  const gb = r.gateBrowse !== false;
+  const bh=document.getElementById('browseHint'); if(bh) bh.textContent = gb ? '已开启 · 浏览免授权' : '已关闭 · 全站要授权';
+  secOnOff('btnBrowseOn','btnBrowseOff',gb);
+
+  document.getElementById('sec-rl').textContent = r.rlStats ? (r.rlStats.total||0) : 0;
+  document.getElementById('sec-sus').textContent = r.suspect||0;
+  if(r.rlStats){
+    document.getElementById('rlStatLine').textContent =
+      '拦截明细：IP ' + r.rlStats.ip + ' · 设备 ' + r.rlStats.dev + ' · 无标识 ' + r.rlStats.anon + ' · 单号取流 ' + r.rlStats.acc;
+  }
+  secFill('rlDev', r.rlDevPerMin);
+  secFill('rlIp', r.rlIpPerMin);
+  secFill('rlAnon', r.rlAnonPerMin);
+  secFill('rlAcc', r.rlAccPerHour);
+  secFill('driftSeg', r.driftSegMax);
+}
+function loadSecurity(){
+  q('/panel-api/security').then(r=>{ if(r && r.ok) paintSec(r); }).catch(()=>{});
+}
+function setSec(patch){
+  q('/panel-api/security',{method:'POST',body:JSON.stringify(patch||{})}).then(()=>{loadSecurity();loadDevices();});
+}
+function saveSec(){
+  setSec({rlDevPerMin:secNum('rlDev'),rlIpPerMin:secNum('rlIp'),rlAnonPerMin:secNum('rlAnon'),rlAccPerHour:secNum('rlAcc')});
+}
+function clearSuspect(id){
+  q('/panel-api/devices/clearsuspect',{method:'POST',body:JSON.stringify({id})}).then(()=>{loadDevices();loadSecurity();});
+}
+
+function loadAcc(){
+  q('/panel-api/accounts').then(r=>{
+    const b=document.getElementById('accBody');
+    if(!r.list||!r.list.length){b.innerHTML='<tr><td colspan="7" class="muted">还没有账号，上面扫码加一个</td></tr>';return;}
+    b.innerHTML=r.list.map(a=>`<tr>
+      <td>${esc(a.name||'(未命名)')}</td>
+      <td class="muted">${esc(a.mid||'-')}</td>
+      <td>${a.valid?'<span class="tag ok">正常</span>':'<span class="tag bad">失效</span>'}</td>
+      <td>${a.vip?'<span class="tag vip">大会员 '+esc(due(a.vipDue))+'</span>':'<span class="tag n">普通</span>'}</td>
+      <td class="muted">${a.source==='qr'?'扫码':a.source==='sms'?'短信':'手动'}</td>
+      <td class="muted">${esc(fmt(a.lastCheck))}</td>
+      <td style="text-align:right">
+        <button onclick="checkOne('${idSafe(a.id)}')">校验</button>
+        <button class="danger" onclick="delAcc('${idSafe(a.id)}')">删除</button>
+      </td></tr>`).join('');
+  });
+}
+function loadLogs(){
+  q('/panel-api/logs').then(r=>{
+    if(r.list) document.getElementById('logs').innerHTML=r.list.map(l=>`<div>[${esc(fmt(l.t))}] ${esc(l.msg)}</div>`).join('')||'<div class="muted">暂无</div>';
+  });
+}
+function checkOne(id){q('/panel-api/accounts/check',{method:'POST',body:JSON.stringify({id})}).then(()=>{refresh();});}
+function checkAll(){q('/panel-api/accounts/checkall',{method:'POST',body:'{}'}).then(()=>{refresh();});}
+function delAcc(id){if(!confirm('删除这个账号？'))return;q('/panel-api/accounts/delete',{method:'POST',body:JSON.stringify({id})}).then(()=>refresh());}
+
+function newQr(){
+  document.getElementById('qrMsg').textContent='生成中…';
+  q('/panel-api/qr/new').then(r=>{
+    if(!r.ok){document.getElementById('qrMsg').textContent=r.msg||'生成失败';return;}
+    qrKey=r.key;
+    const box=document.getElementById('qrbox');box.innerHTML='';
+    new QRCode(box,{text:r.url,width:200,height:200,correctLevel:QRCode.CorrectLevel.M});
+    document.getElementById('qrMsg').textContent='等待扫码…';
+    clearInterval(pollTimer);
+    pollTimer=setInterval(pollQr,2000);
+  });
+}
+function pollQr(){
+  if(!qrKey)return;
+  q('/panel-api/qr/poll?key='+encodeURIComponent(qrKey)).then(r=>{
+    if(r.ok&&r.code===0){
+      clearInterval(pollTimer);
+      document.getElementById('qrMsg').textContent='登录成功：'+(r.account&&r.account.name?r.account.name:'已加入 Cookie 池');
+      document.getElementById('qrbox').innerHTML='<div style="color:#0a0;font-weight:600;font-size:14px;text-align:center">已登录 ✔</div>';
+      qrKey=null; refresh();
+    }else if(r.msg){
+      document.getElementById('qrMsg').textContent=r.msg;
+    }
+  });
+}
+function sendSms(){
+  const tel=document.getElementById('tel').value.trim();
+  document.getElementById('smsMsg').textContent='发送中…';
+  q('/panel-api/sms/send',{method:'POST',body:JSON.stringify({tel})}).then(r=>{
+    document.getElementById('smsMsg').textContent=r.ok?'验证码已发送，查收短信':'发送失败：'+(r.msg||'');
+  });
+}
+function verifySms(){
+  const tel=document.getElementById('tel').value.trim(), code=document.getElementById('code').value.trim();
+  document.getElementById('smsMsg').textContent='登录中…';
+  q('/panel-api/sms/verify',{method:'POST',body:JSON.stringify({tel,code})}).then(r=>{
+    if(r.ok){document.getElementById('smsMsg').textContent='登录成功：'+(r.account&&r.account.name||'已加入');refresh();}
+    else document.getElementById('smsMsg').textContent='登录失败：'+(r.msg||'');
+  });
+}
+function pasteCk(){
+  const cookie=document.getElementById('ck').value.trim();
+  document.getElementById('pasteMsg').textContent='添加中…';
+  q('/panel-api/accounts/paste',{method:'POST',body:JSON.stringify({cookie})}).then(r=>{
+    document.getElementById('pasteMsg').textContent=r.ok?'已添加：'+(r.account.name||''):('失败：'+(r.msg||''));
+    if(r.ok){document.getElementById('ck').value='';refresh();}
+  });
+}
+refresh();
+setInterval(function(){
+  const m=document.getElementById('main');
+  if(m && !m.classList.contains('hide')) loadMetrics();
+},20000);
+</script>
+</body>
+</html>

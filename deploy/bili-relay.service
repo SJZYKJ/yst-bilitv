@@ -1,0 +1,25 @@
+[Unit]
+Description=BiliTV Relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bili-relay
+Group=bili-relay
+WorkingDirectory=/opt/bili-relay
+ExecStart=/usr/bin/node /opt/bili-relay/server.js
+Restart=always
+RestartSec=3
+Environment=PORT=8601
+Environment=BIND=127.0.0.1
+Environment=PORT_MAP=8601:api,8602:app,8603:passport,8604:account,8605:bangumi,8606:member
+LimitNOFILE=65535
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/opt/bili-relay
+
+[Install]
+WantedBy=multi-user.target

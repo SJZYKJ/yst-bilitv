@@ -1,0 +1,32 @@
+{
+  "name": "ibilitv-relay",
+  "version": "2.0.0",
+  "description": "iBiliTV relay with regional egress proxy support",
+  "main": "server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "maoaceo",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "https-proxy-agent": "^7.0.6",
+    "socks-proxy-agent": "^8.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maoaceo/bilitv.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maoaceo/bilitv/issues"
+  },
+  "homepage": "https://github.com/maoaceo/bilitv#readme",
+  "engines": {
+    "node": ">=20"
+  }
+}

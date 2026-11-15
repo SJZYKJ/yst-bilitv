@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const os = require('os');
 const { buildPublicStatus } = require('./status-metrics');
+const { buildSmsSendPayload, buildSmsLoginPayload, collectCookieMap } = require('./sms-login');
 const {
   normalizeProxyConfig,
   selectProxyArea,
@@ -170,6 +171,22 @@ let db = {
   egressProxy: { enabled: false, cn: '', hk: '', tw: '', th: '', default: '' },
 };
 const sessions = new Map();
+const SMS_FLOWS = new Map();
+const SMS_FLOW_TTL = 10 * 60e3;
+function smsFlow(id) {
+  const key = String(id || '');
+  const flow = key && SMS_FLOWS.get(key);
+  if (!flow || flow.expiresAt <= Date.now()) {
+    if (key) SMS_FLOWS.delete(key);
+    return null;
+  }
+  return flow;
+}
+const smsFlowGc = setInterval(() => {
+  const now = Date.now();
+  for (const [key, flow] of SMS_FLOWS) if (!flow || flow.expiresAt <= now) SMS_FLOWS.delete(key);
+}, 60000);
+if (smsFlowGc.unref) smsFlowGc.unref();
 
 /* ---- 面板登录防爆破：连续错 5 次锁 10 分钟（另有全站兜底，防伪造 IP 头绕过）---- */
 const LOGIN_FAIL = new Map();      // ip -> { n, at, until }
@@ -1042,6 +1059,26 @@ async function biliPostApp(url, params) {
   try { return JSON.parse(text); } catch (e) { return { code: -1, message: text.slice(0, 200) }; }
 }
 
+async function biliPostWeb(url, params, cookie) {
+  const body = new URLSearchParams(params || {}).toString();
+  const headers = {
+    'User-Agent': UA,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(body),
+    Origin: 'https://www.bilibili.com',
+    Referer: 'https://www.bilibili.com/',
+  };
+  if (cookie) headers.Cookie = cookie;
+  const r = await requestUrlBuffered(url, {
+    areaPath: '/?area=default', method: 'POST', headers, body: Buffer.from(body),
+  });
+  const text = r.body.toString('utf8');
+  let data;
+  try { data = JSON.parse(text); } catch (e) { data = { code: -1, message: text.slice(0, 200) }; }
+  const raw = r.headers['set-cookie'] || [];
+  return { data, setCookie: Array.isArray(raw) ? raw : [raw] };
+}
+
 async function checkAccount(acc) {
   try {
     const { data } = await biliGet('https://api.bilibili.com/x/web-interface/nav', acc.cookie);
@@ -1129,34 +1166,60 @@ async function qrPoll(key) {
   return out;
 }
 
-/* ---------------- 手机验证码登录 ---------------- */
-async function smsSend(tel) {
-  const j = await biliPostApp('https://passport.bilibili.com/x/passport-login/sms/send', { tel, cid: '86' });
-  if (j.code !== 0) return { ok: false, msg: j.message || '发送失败', code: j.code };
-  const d = j.data || {};
-  return { ok: true, captchaKey: d.captcha_key || '', recaptcha: d.recaptcha_url || '', isNew: !!d.is_new };
+/* ---------------- 手机验证码登录（浏览器手动完成 GeeTest） ---------------- */
+async function smsCaptchaNew() {
+  const { data, setCookie } = await biliGet('https://passport.bilibili.com/x/passport-login/captcha?source=main_web');
+  if (data.code !== 0) return { ok: false, msg: data.message || '获取滑块失败', code: data.code };
+  const d = data.data || {};
+  const gee = d.geetest || {};
+  if (!d.token || !gee.gt || !gee.challenge) return { ok: false, msg: 'B站没有返回可用的滑块参数' };
+  const flowId = crypto.randomBytes(18).toString('hex');
+  SMS_FLOWS.set(flowId, {
+    token: String(d.token), gt: String(gee.gt), challenge: String(gee.challenge),
+    cookies: collectCookieMap(setCookie, d), expiresAt: Date.now() + SMS_FLOW_TTL,
+    tel: '', captchaKey: '',
+  });
+  return { ok: true, flowId, gt: String(gee.gt), challenge: String(gee.challenge), newCaptcha: true };
 }
-async function smsVerify(tel, code, extra) {
-  const p = { tel, code, cid: '86' };
-  if (extra && typeof extra === 'object') {
-    ['captcha_key', 'gee_challenge', 'gee_validate', 'gee_seccode', 'recaptcha_token', 'login_session_id'].forEach((k) => {
-      if (extra[k]) p[k] = extra[k];
-    });
-  }
-  const j = await biliPostApp('https://passport.bilibili.com/x/passport-login/login/sms', p);
-  if (j.code !== 0) {
-    const hint = j.code === -400 ? 'B站对该通道强制滑块校验，短信登录需要在浏览器里手动过滑块。请改用扫码登录（等效于手机登录，3 秒完成）' : (j.message || '登录失败');
-    return { ok: false, code: j.code, msg: hint };
-  }
-  const d = j.data || {};
-  const c = {};
-  if (d.cookie_info && Array.isArray(d.cookie_info.cookies)) {
-    d.cookie_info.cookies.forEach((x) => { c[x.name] = x.value; });
+async function smsSend(flowId, tel, solution) {
+  const flow = smsFlow(flowId);
+  if (!flow) return { ok: false, msg: '滑块验证码已过期，请重新获取' };
+  let payload;
+  try { payload = buildSmsSendPayload(flow, tel, solution); } catch (e) { return { ok: false, msg: e.message }; }
+  const { data, setCookie } = await biliPostWeb(
+    'https://passport.bilibili.com/x/passport-login/web/sms/send', payload, buildCookie(flow.cookies || {})
+  );
+  if (data.code !== 0) return { ok: false, msg: data.message || '短信发送失败', code: data.code };
+  const d = data.data || {};
+  if (!d.captcha_key) return { ok: false, msg: '短信已请求，但B站没有返回登录凭据，请重新获取滑块' };
+  flow.tel = payload.tel;
+  flow.captchaKey = String(d.captcha_key);
+  flow.cookies = Object.assign(flow.cookies || {}, collectCookieMap(setCookie, d));
+  flow.expiresAt = Date.now() + SMS_FLOW_TTL;
+  return { ok: true, flowId, msg: '验证码已发送，请查收短信' };
+}
+async function smsVerify(flowId, code) {
+  const flow = smsFlow(flowId);
+  if (!flow) return { ok: false, msg: '短信登录会话已过期，请重新发送验证码' };
+  let payload;
+  try { payload = buildSmsLoginPayload(flow, code); } catch (e) { return { ok: false, msg: e.message }; }
+  const { data, setCookie } = await biliPostWeb(
+    'https://passport.bilibili.com/x/passport-login/web/login/sms', payload, buildCookie(flow.cookies || {})
+  );
+  if (data.code !== 0) return { ok: false, code: data.code, msg: data.message || '登录失败' };
+  const d = data.data || {};
+  const c = Object.assign({}, flow.cookies || {}, collectCookieMap(setCookie, d));
+  if (d.url) {
+    try {
+      const u = new URL(d.url);
+      u.searchParams.forEach((v, k) => { c[k] = decodeURIComponent(v); });
+    } catch (_) {}
   }
   if (!c.SESSDATA) return { ok: false, msg: '登录成功但未返回 Cookie' };
   const acc = addAccountFromCookieMap(c, 'sms');
   await checkAccount(acc);
   saveDb();
+  SMS_FLOWS.delete(String(flowId || ''));
   return { ok: true, account: acc };
 }
 
@@ -2420,14 +2483,17 @@ async function handlePanel(req, res, url) {
       return json(res, 200, Object.assign({ ok: true }, r));
     } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
   }
+  if (p === '/panel-api/sms/captcha') {
+    try { return json(res, 200, await smsCaptchaNew()); } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
+  }
   if (p === '/panel-api/sms/send') {
     const b = await readBody(req);
     if (!/^1\d{10}$/.test(b.tel || '')) return json(res, 200, { ok: false, msg: '手机号格式不对' });
-    try { return json(res, 200, await smsSend(b.tel)); } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
+    try { return json(res, 200, await smsSend(b.flowId, b.tel, b.solution)); } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
   }
   if (p === '/panel-api/sms/verify') {
     const b = await readBody(req);
-    try { return json(res, 200, await smsVerify(b.tel, b.code, b.extra)); } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
+    try { return json(res, 200, await smsVerify(b.flowId, b.code)); } catch (e) { return json(res, 200, { ok: false, msg: e.message }); }
   }
   if (p === '/panel-api/logs') {
     return json(res, 200, { ok: true, list: db.logs.slice(0, 100) });

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>解析服务器 · 控制台</title>
 <script src="/panel/assets/qrcode.min.js"></script>
+<script src="https://static.geetest.com/static/tools/gt.js"></script>
 <style>
   :root{--bg:#0b0f17;--card:#121826;--card2:#0f1420;--line:#1e2637;--txt:#e6edf7;--dim:#8592a8;--acc:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
   *{box-sizing:border-box}
@@ -433,14 +434,15 @@
       <div class="pane" id="pane-sms">
         <div class="row" style="max-width:520px">
           <div style="flex:1;min-width:200px"><input id="tel" placeholder="手机号" maxlength="11"></div>
-          <button onclick="sendSms()">发送验证码</button>
+          <button id="smsCaptchaBtn" onclick="prepareSmsCaptcha()">显示滑块</button>
         </div>
+        <div id="smsCaptchaBox" style="max-width:520px;min-height:44px;margin-top:12px"></div>
         <div class="row" style="max-width:520px;margin-top:10px">
           <div style="flex:1;min-width:200px"><input id="code" placeholder="短信验证码" maxlength="6"></div>
-          <button class="primary" onclick="verifySms()">登录</button>
+          <button class="primary" id="smsLoginBtn" onclick="verifySms()" disabled>登录</button>
         </div>
         <div class="err" id="smsMsg"></div>
-        <p class="muted">验证码能正常发出。但 B站 对短信登录这一步强制滑块校验，纯接口过不去 —— 加号还是用扫码，效果一样，3 秒完成。</p>
+        <p class="muted">先点击「显示滑块」并手动完成 B站 验证。滑块通过后系统会自动发送短信，再输入短信验证码登录。</p>
       </div>
 
       <div class="pane" id="pane-paste">
@@ -1108,20 +1110,46 @@ function pollQr(){
     }
   });
 }
-function sendSms(){
+let smsFlowId='', smsCaptcha=null;
+function prepareSmsCaptcha(){
   const tel=document.getElementById('tel').value.trim();
-  document.getElementById('smsMsg').textContent='发送中…';
-  q('/panel-api/sms/send',{method:'POST',body:JSON.stringify({tel})}).then(r=>{
-    document.getElementById('smsMsg').textContent=r.ok?'验证码已发送，查收短信':'发送失败：'+(r.msg||'');
-  });
+  const msg=document.getElementById('smsMsg'), box=document.getElementById('smsCaptchaBox'), btn=document.getElementById('smsCaptchaBtn');
+  document.getElementById('smsLoginBtn').disabled=true;smsFlowId='';msg.textContent='';box.innerHTML='';
+  if(!/^1\d{10}$/.test(tel)){msg.textContent='先填写正确的 11 位手机号';return;}
+  if(typeof initGeetest!=='function'){msg.textContent='滑块组件加载失败，请刷新页面后重试';return;}
+  btn.disabled=true;btn.textContent='正在加载…';
+  q('/panel-api/sms/captcha').then(r=>{
+    btn.disabled=false;btn.textContent='重新获取滑块';
+    if(!r.ok){msg.textContent='获取滑块失败：'+(r.msg||'');return;}
+    smsFlowId=r.flowId;
+    initGeetest({
+      gt:r.gt,challenge:r.challenge,new_captcha:r.newCaptcha!==false,offline:false,
+      product:'embed',width:'100%',https:true
+    },captcha=>{
+      smsCaptcha=captcha;captcha.appendTo('#smsCaptchaBox');
+      captcha.onReady(()=>{msg.textContent='请手动完成上面的滑块验证';});
+      captcha.onSuccess(()=>sendSms(captcha.getValidate()));
+      captcha.onError(()=>{msg.textContent='滑块加载失败，请点击「重新获取滑块」';});
+    });
+  }).catch(()=>{btn.disabled=false;btn.textContent='重新获取滑块';msg.textContent='网络错误，获取滑块失败';});
+}
+function sendSms(solution){
+  const tel=document.getElementById('tel').value.trim(), msg=document.getElementById('smsMsg');
+  msg.textContent='滑块已通过，正在发送短信…';
+  q('/panel-api/sms/send',{method:'POST',body:JSON.stringify({flowId:smsFlowId,tel,solution})}).then(r=>{
+    if(r.ok){msg.textContent='验证码已发送，请查收短信';document.getElementById('smsLoginBtn').disabled=false;}
+    else{msg.textContent='发送失败：'+(r.msg||'');document.getElementById('smsLoginBtn').disabled=true;if(smsCaptcha&&smsCaptcha.reset)smsCaptcha.reset();}
+  }).catch(()=>{msg.textContent='网络错误，短信发送失败';document.getElementById('smsLoginBtn').disabled=true;});
 }
 function verifySms(){
-  const tel=document.getElementById('tel').value.trim(), code=document.getElementById('code').value.trim();
-  document.getElementById('smsMsg').textContent='登录中…';
-  q('/panel-api/sms/verify',{method:'POST',body:JSON.stringify({tel,code})}).then(r=>{
-    if(r.ok){document.getElementById('smsMsg').textContent='登录成功：'+(r.account&&r.account.name||'已加入');refresh();}
-    else document.getElementById('smsMsg').textContent='登录失败：'+(r.msg||'');
-  });
+  const code=document.getElementById('code').value.trim(), msg=document.getElementById('smsMsg');
+  if(!smsFlowId){msg.textContent='请先完成滑块并发送短信';return;}
+  if(!/^\d{4,8}$/.test(code)){msg.textContent='请输入短信验证码';return;}
+  msg.textContent='登录中…';document.getElementById('smsLoginBtn').disabled=true;
+  q('/panel-api/sms/verify',{method:'POST',body:JSON.stringify({flowId:smsFlowId,code})}).then(r=>{
+    if(r.ok){msg.textContent='登录成功：'+(r.account&&r.account.name||'已加入');smsFlowId='';refresh();}
+    else{msg.textContent='登录失败：'+(r.msg||'');document.getElementById('smsLoginBtn').disabled=false;}
+  }).catch(()=>{msg.textContent='网络错误，登录失败';document.getElementById('smsLoginBtn').disabled=false;});
 }
 function pasteCk(){
   const cookie=document.getElementById('ck').value.trim();
